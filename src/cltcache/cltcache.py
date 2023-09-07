@@ -91,24 +91,24 @@ def get_preproc_hash(compile_args, config):
 
 def compute_cache_key(clang_tidy_call, config):
     clang_tidy = clang_tidy_call[0]
-    if "--" not in clang_tidy_call:
-        raise Exception("Missing '--' flag in compiler options")
-
-    forwardflag_index = clang_tidy_call.index("--")
-    compile_args = clang_tidy_call[forwardflag_index + 1:]
-    clang_tidy_args = clang_tidy_call[1:forwardflag_index]
+    compile_args = []
+    clang_tidy_args = clang_tidy_call[1:]
+    if "--" in clang_tidy_call:
+        forwardflag_index = clang_tidy_call.index("--")
+        compile_args = clang_tidy_call[forwardflag_index + 1:]
+        clang_tidy_args = clang_tidy_args[:forwardflag_index]
 
     preproc_hash = get_preproc_hash(compile_args, config)
 
-    #version_out = run_get_stdout([clang_tidy] + ["--version"])
-    #version = ",".join(re.findall(r'[0-9]+\.[0-9]+\.?[0-9]*', version_out))
-    #version_hash = sha256(version)
+    version_out = run_get_stdout([clang_tidy] + ["--version"])
+    version = ",".join(re.findall(r'[0-9]+\.[0-9]+\.?[0-9]*', version_out))
+    version_hash = sha256(version)
 
     enabled_checks = run_get_stdout(
         [clang_tidy] + clang_tidy_args + ["--list-checks"])
     enabled_checks_hash = sha256(enabled_checks)
 
-    return sha256(preproc_hash + enabled_checks_hash)[:-16]
+    return sha256(preproc_hash + enabled_checks_hash + version_hash)[:-16]
 
 
 def init_cltcache():
